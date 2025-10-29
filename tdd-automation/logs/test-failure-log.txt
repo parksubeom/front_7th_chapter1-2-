@@ -526,3 +526,62 @@
 
 [1m[41m FAIL [49m[22m [31mTests failed. Watching for file changes...[39m
        [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+c[3J[1m[44m RERUN [49m[22m [34m[2msrc/__tests__/hooks/medium.useEventOperations.spec.ts [22m[34mx17 [34m[39m
+
+ [31m❯[39m src/__tests__/medium.integration.spec.tsx [2m([22m[2m0 test[22m[2m)[22m
+ [32m✓[39m src/__tests__/hooks/medium.useEventOperations.spec.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 180[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+[2m   Start at [22m 08:12:16
+[2m   Duration [22m 791ms
+
+[1m[42m PASS [49m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+c[3J[1m[44m RERUN [49m[22m [34m[2msrc/__tests__/hooks/medium.useEventOperations.spec.ts [22m[34mx18 [34m[39m
+
+ [31m❯[39m src/__tests__/medium.integration.spec.tsx [2m([22m[2m0 test[22m[2m)[22m
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[90m (2)[39m
+[2m      Tests [22m [2mno tests[22m
+[2m   Start at [22m 08:14:04
+[2m   Duration [22m 302ms
+
+[1m[41m FAIL [49m[22m [31mTests failed. Watching for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+c[3J[1m[44m RERUN [49m[22m [34m[2msrc/__tests__/hooks/medium.useEventOperations.spec.ts [22m[34mx19 [34m[39m
+
+ [31m❯[39m src/__tests__/medium.integration.spec.tsx [2m([22m[2m0 test[22m[2m)[22m
+ [32m✓[39m src/__tests__/hooks/medium.useEventOperations.spec.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 171[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+[2m   Start at [22m 08:14:30
+[2m   Duration [22m 812ms
+
+[1m[42m PASS [49m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+c[3J[1m[44m RERUN [49m[22m [34m[2msrc/__tests__/hooks/medium.useEventOperations.spec.ts [22m[34mx20 [34m[39m
+
+ [31m❯[39m src/__tests__/medium.integration.spec.tsx [2m([22m[2m0 test[22m[2m)[22m
+ [32m✓[39m src/__tests__/hooks/medium.useEventOperations.spec.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 157[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+[2m   Start at [22m 08:14:38
+[2m   Duration [22m 771ms
+
+[1m[42m PASS [49m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+c[3J[1m[44m RERUN [49m[22m [34m[2msrc/__tests__/hooks/medium.useEventOperations.spec.ts [22m[34mx21 [34m[39m
+
+ [31m❯[39m src/__tests__/medium.integration.spec.tsx [2m([22m[2m0 test[22m[2m)[22m
+ [32m✓[39m src/__tests__/hooks/medium.useEventOperations.spec.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 152[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+[2m   Start at [22m 08:14:42
+[2m   Duration [22m 737ms
+
+[1m[42m PASS [49m[22m [32mWaiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
