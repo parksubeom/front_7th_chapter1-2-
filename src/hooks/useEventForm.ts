@@ -18,6 +18,7 @@ export const useEventForm = (initialEvent?: Event) => {
   const [repeatInterval, setRepeatInterval] = useState(initialEvent?.repeat.interval || 1);
   const [repeatEndDate, setRepeatEndDate] = useState(initialEvent?.repeat.endDate || '');
   const [notificationTime, setNotificationTime] = useState(initialEvent?.notificationTime || 10);
+  const [seriesId, setSeriesId] = useState(initialEvent?.seriesId);
 
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
@@ -51,6 +52,7 @@ export const useEventForm = (initialEvent?: Event) => {
     setRepeatInterval(1);
     setRepeatEndDate('');
     setNotificationTime(10);
+    setSeriesId(undefined);
   };
 
   const editEvent = (event: Event) => {
@@ -67,6 +69,7 @@ export const useEventForm = (initialEvent?: Event) => {
     setRepeatInterval(event.repeat.interval);
     setRepeatEndDate(event.repeat.endDate || '');
     setNotificationTime(event.notificationTime);
+    setSeriesId(event.seriesId);
   };
 
   return {
@@ -102,5 +105,7 @@ export const useEventForm = (initialEvent?: Event) => {
     handleEndTimeChange,
     resetForm,
     editEvent,
+    seriesId,
+    setSeriesId,
   };
 };
