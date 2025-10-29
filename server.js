@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import path from 'path';
 import { readFile } from 'fs/promises';
 import path from 'path';
 
