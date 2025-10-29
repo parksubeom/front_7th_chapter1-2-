@@ -13,33 +13,83 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
       if (!response.ok) {
         throw new Error('Failed to fetch events');
       }
-      const { events } = await response.json();
-      setEvents(events);
+      const { events: fetchedEvents } = await response.json();
+      setEvents(fetchedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
       enqueueSnackbar('이벤트 로딩 실패', { variant: 'error' });
     }
   };
 
-  const saveEvent = async (eventData: Event | EventForm) => {
+  const saveEvent = async (eventData: Event | EventForm, mode?: 'single' | 'all') => {
     try {
-      let response;
-      if (editing) {
-        response = await fetch(`/api/events/${(eventData as Event).id}`, {
+      const event = eventData as Event;
+      const isRecurringInstance = !!event.seriesId;
+
+      if (editing && isRecurringInstance && event.seriesId) {
+        if (mode === 'single') {
+          // 1. Create a new single event with the modified details.
+          const newSingleEventData: EventForm = {
+            title: event.title,
+            date: event.date,
+            startTime: event.startTime,
+            endTime: event.endTime,
+            description: event.description,
+            location: event.location,
+            category: event.category,
+            notificationTime: event.notificationTime,
+            repeat: { type: 'none', interval: 0 }, // It's a single event now.
+            seriesId: null, // Detach from the series.
+          };
+          const postResponse = await fetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newSingleEventData),
+          });
+          if (!postResponse.ok) {
+            throw new Error('Failed to create new single event');
+          }
+
+          // 2. Add an exception to the original series for the modified date.
+          const putResponse = await fetch(`/api/events/${event.seriesId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ addExceptionDate: event.date }),
+          });
+          if (!putResponse.ok) {
+            throw new Error('Failed to add exception date to series');
+          }
+        } else if (mode === 'all') {
+          // Update the entire series master event.
+          const response = await fetch(`/api/events/${event.seriesId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventData),
+          });
+          if (!response.ok) {
+            throw new Error('Failed to save event series');
+          }
+        }
+      } else if (editing) {
+        // Standard update for a single, non-recurring event.
+        const response = await fetch(`/api/events/${event.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(eventData),
         });
+        if (!response.ok) {
+          throw new Error('Failed to save event');
+        }
       } else {
-        response = await fetch('/api/events', {
+        // Create a new event (can be single or the start of a new series).
+        const response = await fetch('/api/events', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(eventData),
         });
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to save event');
+        if (!response.ok) {
+          throw new Error('Failed to save event');
+        }
       }
 
       await fetchEvents();
@@ -53,12 +103,41 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
     }
   };
 
-  const deleteEvent = async (id: string) => {
+  const deleteEvent = async (id: string, mode?: 'single' | 'all') => {
     try {
-      const response = await fetch(`/api/events/${id}`, { method: 'DELETE' });
+      if (mode === 'single') {
+        // Deleting a single instance means adding an exception date to the master event.
+        // The ID is in the format: `${seriesId}-${YYYYMMDD}`.
+        const lastHyphenIndex = id.lastIndexOf('-');
+        if (lastHyphenIndex === -1) {
+          throw new Error('Invalid instance ID format for single delete');
+        }
 
-      if (!response.ok) {
-        throw new Error('Failed to delete event');
+        const seriesId = id.substring(0, lastHyphenIndex);
+        const dateStr = id.substring(lastHyphenIndex + 1);
+
+        if (dateStr.length !== 8 || !/^\d{8}$/.test(dateStr)) {
+          throw new Error('Invalid date format in instance ID');
+        }
+
+        const exceptionDate = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+        const response = await fetch(`/api/events/${seriesId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ addExceptionDate: exceptionDate }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to add exception date for deletion');
+        }
+      } else {
+        // 'all' mode deletes the entire series.
+        // No mode deletes a single non-recurring event.
+        // In both cases, the 'id' parameter is the one to delete.
+        const response = await fetch(`/api/events/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+          throw new Error('Failed to delete event');
+        }
       }
 
       await fetchEvents();
