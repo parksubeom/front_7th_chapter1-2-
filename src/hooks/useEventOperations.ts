@@ -159,7 +159,7 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
         if (!response.ok) {
           throw new Error('Failed to delete event');
         }
-        setEvents((prevEvents) => prevEvents.filter((e) => e.id !== id));
+        await fetchEvents();
       }
 
       enqueueSnackbar('일정이 삭제되었습니다.', { variant: 'info' });

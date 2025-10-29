@@ -98,14 +98,43 @@ it("새로 정의된 'title', 'endTime' 기준으로 적절하게 일정이 업�
 });
 
 it('존재하는 이벤트 삭제 시 에러없이 아이템이 삭제된다.', async () => {
-  setupMockHandlerDeletion();
+  let mockEvents: Event[] = [
+    {
+      id: '1',
+      title: '삭제할 이벤트',
+      date: '2025-10-15',
+      startTime: '09:00',
+      endTime: '10:00',
+      description: '삭제할 이벤트입니다',
+      location: '어딘가',
+      category: '기타',
+      repeat: { type: 'none', interval: 0 },
+      notificationTime: 10,
+    },
+  ];
+
+  server.use(
+    http.get('/api/events', () => {
+      return HttpResponse.json({ events: mockEvents });
+    }),
+    http.delete('/api/events/:id', ({ params }) => {
+      const { id } = params;
+      mockEvents = mockEvents.filter((event) => event.id !== id);
+      return new HttpResponse(null, { status: 204 });
+    })
+  );
 
   const { result } = renderHook(() => useEventOperations(false));
 
+  // useEffect내의 초기 fetch가 완료될 때까지 기다립니다.
+  await act(() => Promise.resolve(null));
+
+  // 이제 삭제를 수행합니다.
   await act(async () => {
     await result.current.deleteEvent('1');
   });
 
+  // 삭제 작업 후 상태가 업데이트될 때까지 기다립니다 (fetchEvents 호출로 인해).
   await act(() => Promise.resolve(null));
 
   expect(result.current.events).toEqual([]);
@@ -173,6 +202,7 @@ it("네트워크 오류 시 '일정 삭제 실패'라는 텍스트가 노출되�
 });
 
 describe('반복 일정 수정 및 삭제', () => {
+  let mockEvents: Event[] = [];
   const recurringMasterEvent: Event = {
     id: 'series-1',
     seriesId: 'series-1',
@@ -189,10 +219,11 @@ describe('반복 일정 수정 및 삭제', () => {
   };
 
   beforeEach(() => {
-    // 각 테스트 전에 기본 핸들러 설정
+    // 각 테스트 전에 기본 핸들러와 목 데이터를 리셋합니다.
+    mockEvents = [{ ...recurringMasterEvent, exceptionDates: [] }];
     server.use(
       http.get('/api/events', () => {
-        return HttpResponse.json({ events: [recurringMasterEvent] });
+        return HttpResponse.json({ events: mockEvents });
       })
     );
   });
@@ -228,10 +259,11 @@ describe('반복 일정 수정 및 삭제', () => {
         }),
         // 2. 기존 시리즈 예외 처리 API 모킹
         http.put('/api/events/series-1', async () => {
-          return HttpResponse.json({
-            ...recurringMasterEvent,
-            exceptionDates: ['2025-10-20'],
-          });
+          const originalEvent = mockEvents.find((e) => e.id === 'series-1');
+          if (originalEvent) {
+            originalEvent.exceptionDates = ['2025-10-20'];
+          }
+          return HttpResponse.json(originalEvent);
         })
       );
 
@@ -261,16 +293,18 @@ describe('반복 일정 수정 및 삭제', () => {
       server.use(
         http.post('/api/events', async () => {
           // POST 응답은 위 테스트와 동일
-          return HttpResponse.json({ id: 'new-evt-2', seriesId: null, ...modifiedInstance }, { status: 201 });
+          return HttpResponse.json(
+            { ...modifiedInstance, id: 'new-evt-2', seriesId: null },
+            { status: 201 }
+          );
         }),
         http.put('/api/events/series-1', async ({ request }) => {
           const body = await request.json();
+          const originalEvent = mockEvents.find((e) => e.id === 'series-1');
           // @ts-expect-error body type
-          if (body.addExceptionDate === '2025-10-20') {
-            return HttpResponse.json({
-              ...recurringMasterEvent,
-              exceptionDates: ['2025-10-20'],
-            });
+          if (body.addExceptionDate === '2025-10-20' && originalEvent) {
+            originalEvent.exceptionDates = ['2025-10-20'];
+            return HttpResponse.json(originalEvent);
           }
           return new HttpResponse(null, { status: 400 });
         })
@@ -299,6 +333,7 @@ describe('반복 일정 수정 및 삭제', () => {
 
       server.use(
         http.put('/api/events/series-1', async () => {
+          mockEvents[0] = seriesUpdatePayload;
           return HttpResponse.json(seriesUpdatePayload);
         })
       );
@@ -325,12 +360,12 @@ describe('반복 일정 수정 및 삭제', () => {
       server.use(
         http.put('/api/events/series-1', async ({ request }) => {
           const body = await request.json();
+          const originalEvent = mockEvents.find((e) => e.id === 'series-1');
+
           // @ts-expect-error body type
-          if (body.addExceptionDate === '2025-10-27') {
-            return HttpResponse.json({
-              ...recurringMasterEvent,
-              exceptionDates: ['2025-10-27'],
-            });
+          if (body.addExceptionDate === '2025-10-27' && originalEvent) {
+            originalEvent.exceptionDates = ['2025-10-27'];
+            return HttpResponse.json(originalEvent);
           }
           return new HttpResponse(null, { status: 400 });
         })
@@ -354,7 +389,9 @@ describe('반복 일정 수정 및 삭제', () => {
       const seriesIdToDelete = 'series-1';
 
       server.use(
-        http.delete('/api/events/series-1', () => {
+        http.delete('/api/events/:id', ({ params }) => {
+          const { id } = params;
+          mockEvents = mockEvents.filter((event) => event.id !== id);
           return new HttpResponse(null, { status: 204 });
         })
       );
@@ -367,6 +404,9 @@ describe('반복 일정 수정 및 삭제', () => {
       await act(async () => {
         await result.current.deleteEvent(seriesIdToDelete, 'all');
       });
+
+      // deleteEvent가 fetchEvents를 호출하므로, 상태 업데이트를 기다립니다.
+      await act(() => Promise.resolve(null));
 
       expect(result.current.events).toHaveLength(0);
     });
