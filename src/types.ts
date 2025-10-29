@@ -16,8 +16,15 @@ export interface EventForm {
   category: string;
   repeat: RepeatInfo;
   notificationTime: number; // 분 단위로 저장
+  seriesId?: string | null;
 }
 
 export interface Event extends EventForm {
   id: string;
+  seriesId?: string | null;
+  exceptionDates?: string[];
+}
+
+export interface EventInstance extends Event {
+  originalDate: string;
 }
