@@ -4,6 +4,7 @@ import path from 'path';
 import { execSync } from 'child_process';
 // [수정] 경로 변경: 상위 폴더의 core 모듈 import
 import { runAgent } from '../core/runAgent.js';
+import { saveAgentChecklist } from '../core/checklistUtils.js';
 import { SYSTEM_PROMPT_CODE_WRITE, SYSTEM_PROMPT_CODE_REVIEW } from '../core/agent_prompts.js';
 
 // --- 1. 헬퍼 함수 정의 ---

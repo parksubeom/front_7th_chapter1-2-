@@ -1,6 +1,7 @@
 // tdd-automation/01-run-design-analysis.js
 import fs from 'fs';
-import { runAgent } from '../core/runAgent.js'; // runAgent.js (재시도 로직 포함 버전) 필요
+import { runAgent } from '../core/runAgent.js';
+import { saveAgentChecklist } from '../core/checklistUtils.js'; // runAgent.js (재시도 로직 포함 버전) 필요
 import { SYSTEM_PROMPT_DESIGN } from '../core/agent_prompts.js'; // agent_prompts.js (Q&A 버전) 필요
 
 // --- (준비 1) PRD ---
@@ -134,6 +135,20 @@ ${newFeatureSpec}
     // runAgent에서 이미 에러 처리 및 throw하므로 여기서는 추가 로깅만
     console.error('1단계 질문 생성 중 최종 오류 발생.');
     process.exit(1); // 파이프라인 중단
+  } finally {
+    // [✅ 수정] 체크리스트 생성 및 저장 로직
+    const checklistItems = [
+      'PRD 및 프로젝트 컨텍스트 분석 수행 시도',
+      '기능 구현에 필요한 기술적 질문 리스트 생성 시도',
+      `산출물(${path.relative(process.cwd(), outputFilePath)}) 생성 시도`,
+      // AI의 구체적인 행동 평가는 어려우므로 '시도'로 표현
+    ];
+    // saveAgentChecklist 호출 (에러 발생해도 체크리스트는 저장)
+    saveAgentChecklist(agentName, __filename, { success, outputFilePath }, checklistItems);
+
+    if (!success) {
+      process.exit(1); // 실제 오류 발생 시 스크립트 종료
+    }
   }
 }
 

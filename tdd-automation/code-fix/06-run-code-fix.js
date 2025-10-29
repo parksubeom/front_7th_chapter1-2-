@@ -2,7 +2,8 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import { runAgent } from '../core/runAgent.js'; // runAgent.js (재시도 로직 포함 버전) 필요
+import { runAgent } from '../core/runAgent.js';
+import { saveAgentChecklist } from '../core/checklistUtils.js'; // runAgent.js (재시도 로직 포함 버전) 필요
 import { SYSTEM_PROMPT_CODE_WRITE } from '../core/agent_prompts.js'; // agent_prompts.js (최종 보강 버전, 실패 로그 처리 규칙 포함) 필요
 
 // --- 1. 헬퍼 함수 정의 (통합 완료) ---
