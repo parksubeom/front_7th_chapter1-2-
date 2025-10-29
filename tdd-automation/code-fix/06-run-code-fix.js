@@ -1,10 +1,12 @@
-// tdd-automation/06-run-code-fix.js (Fix/Debug Step - Final Version)
+// tdd-automation/code-fix/06-run-code-fix.js (체크리스트 추가)
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+// [수정] 경로 및 import 추가
 import { runAgent } from '../core/runAgent.js';
-import { saveAgentChecklist } from '../core/checklistUtils.js'; // runAgent.js (재시도 로직 포함 버전) 필요
-import { SYSTEM_PROMPT_CODE_WRITE } from '../core/agent_prompts.js'; // agent_prompts.js (최종 보강 버전, 실패 로그 처리 규칙 포함) 필요
+import { saveAgentChecklist } from '../core/checklistUtils.js'; // 체크리스트 유틸 import
+import { SYSTEM_PROMPT_CODE_WRITE } from '../core/agent_prompts.js'; // 코드 작성 프롬프트 재활용
+import { fileURLToPath } from 'url'; // [✅ 추가] 현재 파일 경로 얻기 위해
 
 // --- 1. 헬퍼 함수 정의 (통합 완료) ---
 
@@ -18,17 +20,17 @@ function cleanAiCodeResponse(aiResponse) {
 }
 
 function run(command, exitOnError = true) {
+  // exitOnError 추가
   console.log(`[Run]: ${command}`);
   try {
     execSync(command, { stdio: 'inherit', encoding: 'utf8' });
-    return { success: true, output: '' }; // 성공 시
+    return { success: true, output: '' };
   } catch (error) {
     const errorOutput = error.stderr?.toString() || error.stdout?.toString() || error.message;
     console.error(`❌ 명령어 실행 실패: ${command}`, errorOutput);
     if (exitOnError) {
       process.exit(1);
     }
-    // 실패 시 에러 객체 또는 출력 반환
     return { success: false, output: errorOutput };
   }
 }
@@ -49,11 +51,18 @@ function saveFileAndCommit(filePath, content, commitMessage) {
     }
 
     let existingContent = '';
-    if (fs.existsSync(absolutePath)) {
-      existingContent = fs.readFileSync(absolutePath, 'utf8');
+    try {
+      // 파일 읽기 실패 방어
+      if (fs.existsSync(absolutePath)) {
+        existingContent = fs.readFileSync(absolutePath, 'utf8');
+      }
+    } catch (readError) {
+      console.warn(`    ⚠️ [FS 경고]: 기존 파일 ${filePath} 읽기 실패. (${readError.message})`);
+      existingContent = ''; // 읽기 실패 시 빈 내용으로 간주
     }
 
     if (existingContent.trim() !== content.trim()) {
+      // trim()으로 공백 차이 무시
       fs.writeFileSync(absolutePath, content);
       console.log(`[FS]: 파일 저장됨 (변경됨): ${filePath}`);
       run(`git add "${filePath}"`);
@@ -82,8 +91,7 @@ function saveFileAndCommit(filePath, content, commitMessage) {
     }
   } catch (error) {
     console.error(`❌ 파일 저장/커밋 중 오류: ${filePath}`, error);
-    // saveFileAndCommit 실패는 치명적이므로 중단
-    process.exit(1);
+    throw error; // 오류 발생 시 상위 호출자에게 알림
   }
 }
 
@@ -93,12 +101,23 @@ const readFileContent = (filePath, optional = false) => {
     return fs.readFileSync(absolutePath, 'utf8');
   } catch (e) {
     if (e.code === 'ENOENT') {
-      if (!optional) {
-        // 필수 파일인 경우
+      // [수정] logs 폴더 경로 반영
+      const isSpecFile = filePath.includes('logs/output-02-feature-spec.md');
+      // [수정] 실패 로그 파일 경로 반영
+      const isFailureLog = filePath.includes('logs/test-failure-log.txt');
+      const isTypesFile = filePath.includes('src/types.ts');
+      // 수정 대상 코드 파일은 필수
+      const isCodeFile =
+        !filePath.includes('.spec.') && !isSpecFile && !isFailureLog && filePath.startsWith('src/');
+      // 테스트 파일도 이 단계에서는 필수
+      const isTestFile = filePath.includes('.spec.');
+
+      // 필수 파일 누락 시 오류 처리 강화
+      if (!optional && (isSpecFile || isTypesFile || isFailureLog || isCodeFile || isTestFile)) {
         console.error(`❌ 치명적 오류: 필수 파일 ${filePath} 을(를) 찾을 수 없습니다.`);
         process.exit(1);
-      } else {
-        // 선택적 파일인 경우
+      } else if (optional) {
+        // 선택적 컨텍스트 파일
         console.warn(`[Context]: 선택적 파일 ${filePath} 없음.`);
         return `// [정보] 파일 ${filePath} 없음.`;
       }
@@ -122,7 +141,7 @@ const PROJECT_FILES = [
   'src/__mocks__/handlers.ts',
   'src/__mocks__/handlersUtils.ts',
   'src/__tests__/utils.ts',
-  'src/utils/repeatUtils.ts', // 추가된 파일 확인
+  'src/utils/repeatUtils.ts',
 ];
 
 /** 프로젝트 주요 파일 컨텍스트 로드 함수 */
@@ -136,87 +155,87 @@ function getProjectContext() {
   return context;
 }
 
+const __filename = fileURLToPath(import.meta.url); // [✅ 추가] 현재 스크립트 파일 경로
+
 // --- 2. [코드 수정 에이전트] 실행 ---
 
-const TEST_LOG_PATH = './tdd-automation/test-failure-log.txt'; // 실패 로그 파일 경로
+const TEST_LOG_PATH = './tdd-automation/logs/test-failure-log.txt'; // [수정] 경로 변경
 
 async function runCodeFix() {
-  console.log('--- 5단계: [코드 수정 에이전트] 실행 (Debugging) ---');
+  const agentName = '5. 코드 수정 (디버깅)'; // [✅ 추가] 에이전트 이름 정의
+  console.log(`--- ${agentName} 시작 ---`);
+  let success = false; // [✅ 추가] 실행 성공 여부 플래그
+  const modifiedFiles = []; // [✅ 추가] 변경된 파일 목록 기록
 
-  // 1. 공통 컨텍스트 로드
-  const specMarkdown = readFileContent('./tdd-automation/output-02-feature-spec.md');
-  let projectContext = getProjectContext(); // 현재 코드 상태 포함
-  const failureLog = readFileContent(TEST_LOG_PATH); // 실패 로그
+  try {
+    // [✅ 추가] 메인 로직을 try 블록으로 감쌈
+    // 1. 공통 컨텍스트 로드
+    const specMarkdown = readFileContent('./tdd-automation/logs/output-02-feature-spec.md'); // [수정] 경로 변경
+    let projectContext = getProjectContext(); // 현재 코드 상태 포함
+    const failureLog = readFileContent(TEST_LOG_PATH); // 실패 로그 (필수)
 
-  if (failureLog.includes('파일 없음') || failureLog.length < 10) {
-    // 로그 유효성 검사 강화
-    console.error('\n❌ 치명적 오류: 유효한 테스트 실패 로그 파일을 찾을 수 없습니다.');
-    console.log(
-      "👉 'pnpm test > ./tdd-automation/test-failure-log.txt || true' 명령어를 먼저 실행해야 합니다."
-    );
-    return;
-  }
-
-  // 2. 수정 대상 파일 목록 (4단계와 동일)
-  const filesToFix = [
-    // 순서 중요: 타입 -> 의존성 낮은 유틸 -> 훅 순서
-    'src/types.ts',
-    'src/utils/repeatUtils.ts',
-    'src/hooks/useEventForm.ts',
-    'src/hooks/useCalendarView.ts',
-    'src/hooks/useEventOperations.ts',
-  ];
-
-  for (const codePath of filesToFix) {
-    // 수정 대상 파일이 실제로 존재하는지 확인 (4단계에서 생성되었어야 함)
-    if (!fs.existsSync(codePath)) {
-      console.warn(`[Skip]: 수정 대상 파일 ${codePath} 이(가) 없습니다. 4단계 실행을 확인하세요.`);
-      continue;
+    // 로그 파일 유효성 검사 강화
+    if (failureLog.includes('파일 없음') || failureLog.length < 10) {
+      console.error('\n❌ 치명적 오류: 유효한 테스트 실패 로그 파일을 찾을 수 없습니다.');
+      console.log(`👉 '${TEST_LOG_PATH}' 파일이 존재하고 내용이 있는지 확인하세요.`);
+      throw new Error('Missing or invalid test failure log.'); // 에러를 던져 finally에서 처리
     }
 
-    console.log(`\n... [수정 작업] ${path.basename(codePath)} 파일 재검토 및 수정 중 ...`);
+    // 2. 수정 대상 파일 목록
+    const filesToFix = [
+      'src/types.ts',
+      'src/utils/repeatUtils.ts',
+      'src/hooks/useEventForm.ts',
+      'src/hooks/useCalendarView.ts',
+      'src/hooks/useEventOperations.ts',
+    ];
 
-    // 관련 테스트 파일 경로 추정 (이전 답변에서 수정된 로직)
-    let testPath;
-    if (codePath === 'src/types.ts') {
-      testPath = './src/__tests__/unit/repeatUtils.spec.ts'; // 대표 테스트 파일
-      console.log(`    ℹ️ types.ts 수정: 대표 테스트 파일(${testPath}) 참조`);
-    } else if (codePath === 'src/utils/repeatUtils.ts') {
-      testPath = './src/__tests__/unit/repeatUtils.spec.ts';
-    } else if (codePath === 'src/hooks/useEventForm.ts') {
-      testPath = './src/__tests__/hooks/medium.useEventOperations.spec.ts'; // 연관 테스트 파일
-      console.log(`    ℹ️ useEventForm.ts 수정: 연관 테스트 파일(${testPath}) 참조`);
-    } else if (codePath === 'src/hooks/useCalendarView.ts') {
-      testPath = './src/__tests__/hooks/easy.useCalendarView.spec.ts';
-    } else if (codePath === 'src/hooks/useEventOperations.ts') {
-      testPath = './src/__tests__/hooks/medium.useEventOperations.spec.ts';
-    } else {
-      console.error(`❌ 오류: ${codePath}에 대한 테스트 파일 경로를 결정할 수 없습니다.`);
-      continue; // 이 파일 건너뛰기
-    }
+    for (const codePath of filesToFix) {
+      // 수정 대상 파일 존재 확인
+      if (!fs.existsSync(codePath)) {
+        console.warn(
+          `[Skip]: 수정 대상 파일 ${codePath} 이(가) 없습니다. 4단계 실행을 확인하세요.`
+        );
+        continue;
+      }
 
-    let failingTestCode; // scope 확장
-    try {
-      failingTestCode = readFileContent(testPath); // 필수 파일로 처리
-    } catch (e) {
-      // readFileContent가 이미 에러 처리 및 종료
-      continue; // 다음 task로
-    }
+      console.log(`\n... [수정 작업] ${path.basename(codePath)} 파일 재검토 및 수정 중 ...`);
 
-    const prompt = `
+      // 관련 테스트 파일 경로 추정 (경로 규칙에 따라)
+      let testPath;
+      if (codePath === 'src/types.ts') {
+        testPath = './src/__tests__/unit/repeatUtils.spec.ts';
+      } else if (codePath === 'src/utils/repeatUtils.ts') {
+        testPath = './src/__tests__/unit/repeatUtils.spec.ts';
+      } else if (codePath === 'src/hooks/useEventForm.ts') {
+        testPath = './src/__tests__/hooks/medium.useEventOperations.spec.ts';
+      } else if (codePath === 'src/hooks/useCalendarView.ts') {
+        testPath = './src/__tests__/hooks/easy.useCalendarView.spec.ts';
+      } else if (codePath === 'src/hooks/useEventOperations.ts') {
+        testPath = './src/__tests__/hooks/medium.useEventOperations.spec.ts';
+      } else {
+        continue;
+      } // 해당 없으면 건너뛰기
+
+      // 테스트 파일 존재 확인
+      if (!fs.existsSync(testPath)) {
+        console.error(`❌ 오류: 관련 테스트 파일(${testPath})을 찾을 수 없습니다.`);
+        continue; // 이 파일 건너뛰기
+      }
+      const failingTestCode = readFileContent(testPath); // 실패하는 테스트 코드
+
+      // 프롬프트 구성 (실패 로그 포함)
+      const prompt = `
 [1. 최종 명세서]
 ${specMarkdown}
 [2. 전체 프로젝트 컨텍스트 (현재 코드 상태)]
 ${projectContext}
 [3. 테스트 실패 로그 (가장 중요!)]
 ${failureLog}
-
 [4. 이 파일의 기존 코드 (수정 대상): ${codePath}]
-${readFileContent(codePath)}
-
+${readFileContent(codePath)} // 현재 파일 내용 로드
 [5. 관련 테스트 코드 (수정 금지)]
 ${failingTestCode}
-
 [지시]
 당신은 '코드 수정 에이전트'입니다. 제공된 **[3. 테스트 실패 로그]** 와
 [5. 관련 테스트 코드]를 최우선으로 분석하여, 오직 **[4. 이 파일의 기존 코드]** 만 수정하여
@@ -225,26 +244,50 @@ ${failingTestCode}
 **수정된 파일의 완성된 전체 코드**만을 반환하세요.
 `;
 
-    // 3. AI 에이전트 실행
-    const rawCode = await runAgent(SYSTEM_PROMPT_CODE_WRITE, prompt); // 코드 작성 프롬프트 재활용
-    const fixedCode = cleanAiCodeResponse(rawCode);
+      // 3. AI 에이전트 실행
+      const rawCode = await runAgent(SYSTEM_PROMPT_CODE_WRITE, prompt); // 코드 작성 프롬프트 재활용
+      const fixedCode = cleanAiCodeResponse(rawCode);
 
-    // 4. 파일 덮어쓰기 및 커밋 (변경 시에만)
-    saveFileAndCommit(
-      codePath,
-      fixedCode,
-      `fix(tdd): [TDD 4.5] ${path.basename(codePath)} 자동 버그 수정 시도 (GREEN 목표)` // 커밋 메시지 변경
+      // 4. 파일 덮어쓰기 및 커밋 (변경 시에만)
+      saveFileAndCommit(
+        codePath,
+        fixedCode,
+        `fix(tdd): [TDD 5/5] ${path.basename(codePath)} 자동 버그 수정 시도 (GREEN 목표)` // 커밋 메시지 변경
+      );
+      modifiedFiles.push(codePath); // 성공 시 파일 목록에 추가
+
+      // [중요] 컨텍스트 업데이트: 다음 파일 수정을 위해 최신 코드로 업데이트
+      projectContext = getProjectContext();
+    }
+
+    console.log('\n--- 5단계 (수정 시도) 완료 ---');
+    console.log(
+      "✅ [중요] 'pnpm test'를 실행하여 모든 테스트가 '통과(GREEN)'하는지 다시 확인하세요!"
     );
+    console.log(
+      '➡️ 테스트 통과를 확인했다면 최종 [6단계: UI 구현] 또는 [7단계: 리팩토링]을 요청해주세요.'
+    );
+    success = true; // [✅ 추가] 모든 작업 성공 시 플래그 설정
+  } catch (error) {
+    console.error(`${agentName} 중 최종 오류 발생.`);
+    // success 플래그는 false 유지 (finally에서 처리)
+  } finally {
+    // [✅ 추가] 체크리스트 생성 및 저장
+    const checklistItems = [
+      '최종 명세서 로드 시도',
+      '프로젝트 컨텍스트 로드 시도',
+      '테스트 실패 로그 파일 로드 및 유효성 검사 시도',
+      '실패 로그 기반으로 각 대상 파일 코드 수정 시도 (types.ts, repeatUtils.ts, useEventForm.ts, useCalendarView.ts, useEventOperations.ts)',
+      '수정 시 타입 및 시그니처 준수 시도 (AI 확인 필요)',
+      '변경된 코드 파일 Git 커밋 실행 시도 (변경 시)',
+    ];
+    // outputFilePath 대신 변경된 파일 목록 전달
+    saveAgentChecklist(agentName, __filename, { success, modifiedFiles }, checklistItems);
 
-    // [중요] 컨텍스트 업데이트: 다음 파일 수정을 위해 최신 코드로 업데이트
-    projectContext = getProjectContext();
+    if (!success) {
+      process.exit(1); // 실제 오류 발생 시 스크립트 종료
+    }
   }
-
-  console.log('\n--- 5단계 (수정 시도) 완료 ---');
-  console.log(
-    "✅ [중요] 'pnpm test'를 실행하여 모든 테스트가 '통과(GREEN)'하는지 다시 확인하세요!"
-  );
-  console.log('➡️ 테스트 통과를 확인했다면 최종 [6단계: 리팩토링]을 요청해주세요.');
 }
 
 // --- 스크립트 실행 ---
