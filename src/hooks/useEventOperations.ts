@@ -49,6 +49,7 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
           if (!postResponse.ok) {
             throw new Error('Failed to create new single event');
           }
+          const newEvent = await postResponse.json();
 
           // 2. Add an exception to the original series for the modified date.
           const putResponse = await fetch(`/api/events/${event.seriesId}`, {
@@ -59,6 +60,13 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
           if (!putResponse.ok) {
             throw new Error('Failed to add exception date to series');
           }
+          const updatedSeries = await putResponse.json();
+
+          setEvents((prevEvents) => [
+            ...prevEvents.filter((e) => e.id !== updatedSeries.id),
+            updatedSeries,
+            newEvent,
+          ]);
         } else if (mode === 'all') {
           // Update the entire series master event.
           const response = await fetch(`/api/events/${event.seriesId}`, {
@@ -69,6 +77,10 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
           if (!response.ok) {
             throw new Error('Failed to save event series');
           }
+          const updatedEvent = await response.json();
+          setEvents((prevEvents) =>
+            prevEvents.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+          );
         }
       } else if (editing) {
         // Standard update for a single, non-recurring event.
@@ -80,6 +92,10 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
         if (!response.ok) {
           throw new Error('Failed to save event');
         }
+        const updatedEvent = await response.json();
+        setEvents((prevEvents) =>
+          prevEvents.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+        );
       } else {
         // Create a new event (can be single or the start of a new series).
         const response = await fetch('/api/events', {
@@ -90,9 +106,10 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
         if (!response.ok) {
           throw new Error('Failed to save event');
         }
+        const newEvent = await response.json();
+        setEvents((prevEvents) => [...prevEvents, newEvent]);
       }
 
-      await fetchEvents();
       onSave?.();
       enqueueSnackbar(editing ? '일정이 수정되었습니다.' : '일정이 추가되었습니다.', {
         variant: 'success',
@@ -130,6 +147,10 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
         if (!response.ok) {
           throw new Error('Failed to add exception date for deletion');
         }
+        const updatedSeries = await response.json();
+        setEvents((prevEvents) =>
+          prevEvents.map((e) => (e.id === updatedSeries.id ? updatedSeries : e))
+        );
       } else {
         // 'all' mode deletes the entire series.
         // No mode deletes a single non-recurring event.
@@ -138,9 +159,9 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
         if (!response.ok) {
           throw new Error('Failed to delete event');
         }
+        setEvents((prevEvents) => prevEvents.filter((e) => e.id !== id));
       }
 
-      await fetchEvents();
       enqueueSnackbar('일정이 삭제되었습니다.', { variant: 'info' });
     } catch (error) {
       console.error('Error deleting event:', error);
