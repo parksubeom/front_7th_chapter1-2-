@@ -20,11 +20,12 @@ export const generateRecurringEvents = (
     (event) => event.seriesId && event.repeat.type !== 'none'
   );
 
-  const viewStartDate = new Date(viewStart);
-  viewStartDate.setUTCHours(0, 0, 0, 0);
-
-  const viewEndDate = new Date(viewEnd);
-  viewEndDate.setUTCHours(23, 59, 59, 999);
+  const viewStartDate = new Date(
+    Date.UTC(viewStart.getFullYear(), viewStart.getMonth(), viewStart.getDate())
+  );
+  const viewEndDate = new Date(
+    Date.UTC(viewEnd.getFullYear(), viewEnd.getMonth(), viewEnd.getDate(), 23, 59, 59, 999)
+  );
 
   for (const event of recurringEvents) {
     // Type guard for seriesId, which is checked in the filter but TypeScript likes it explicit.
