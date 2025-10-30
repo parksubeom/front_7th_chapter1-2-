@@ -1,8 +1,10 @@
-// tdd-automation/02-run-design-spec.js
+// tdd-automation/design/02-run-design-spec.js (최종 수정본)
 import fs from 'fs';
+import path from 'path'; // [✅ 수정] path 모듈 import
 import { runAgent } from '../core/runAgent.js';
-import { saveAgentChecklist } from '../core/checklistUtils.js'; // runAgent.js (재시도 로직 포함 버전) 필요
-import { SYSTEM_PROMPT_DESIGN } from '../core/agent_prompts.js'; // agent_prompts.js (Q&A 버전, 타입 정의 강조 버전) 필요
+import { saveAgentChecklist } from '../core/checklistUtils.js'; // checklistUtils.js 필요
+import { SYSTEM_PROMPT_DESIGN } from '../core/agent_prompts.js'; // agent_prompts.js 필요
+import { fileURLToPath } from 'url'; // [✅ 수정] 현재 파일 경로를 얻기 위해
 
 // --- (준비 1) PRD 및 컨텍스트 (01 스크립트와 동일한 내용) ---
 const newFeatureSpec = `
@@ -52,35 +54,35 @@ function getProjectContext() {
   const fileStructure = `
 [프로젝트 파일 구조 (ls -R src)]
 src:
-__mocks__/  __tests__/  apis/  App.tsx  components/  hooks/  main.tsx  setupTests.ts  types.ts  utils/  vite-env.d.ts
+__mocks__/  __tests__/  apis/  App.tsx  components/  hooks/  main.tsx  setupTests.ts  types.ts  utils/  vite-env.d.ts
 
 src/__mocks__:
-handlers.ts  handlersUtils.ts  response/
+handlers.ts  handlersUtils.ts  response/
 
 src/__mocks__/response:
-events.json  realEvents.json
+events.json  realEvents.json
 
 src/__tests__:
-hooks/  medium.integration.spec.tsx  unit/  utils.ts
+hooks/  medium.integration.spec.tsx  unit/  utils.ts
 
 src/__tests__/hooks:
-easy.useCalendarView.spec.ts  easy.useSearch.spec.ts  medium.useEventOperations.spec.ts  medium.useNotifications.spec.ts
+easy.useCalendarView.spec.ts  easy.useSearch.spec.ts  medium.useEventOperations.spec.ts  medium.useNotifications.spec.ts
 
 src/__tests__/unit:
-easy.dateUtils.spec.ts     easy.eventUtils.spec.ts     easy.notificationUtils.spec.ts  repeatUtils.spec.ts
-easy.eventOverlap.spec.ts  easy.fetchHolidays.spec.ts  easy.timeValidation.spec.ts
+easy.dateUtils.spec.ts     easy.eventUtils.spec.ts     easy.notificationUtils.spec.ts  repeatUtils.spec.ts
+easy.eventOverlap.spec.ts  easy.fetchHolidays.spec.ts  easy.timeValidation.spec.ts
 
 src/apis:
 fetchHolidays.ts
 
 src/components:
-CalendarDayCell.tsx  EventFormModal.tsx  EventOperationModals.tsx
+CalendarDayCell.tsx  EventFormModal.tsx  EventOperationModals.tsx
 
 src/hooks:
-useCalendarView.ts  useEventForm.ts  useEventOperations.ts  useNotifications.ts  useSearch.ts
+useCalendarView.ts  useEventForm.ts  useEventOperations.ts  useNotifications.ts  useSearch.ts
 
 src/utils:
-dateUtils.ts  eventOverlap.ts  eventUtils.ts  notificationUtils.ts  repeatUtils.ts  timeValidation.ts
+dateUtils.ts  eventOverlap.ts  eventUtils.ts  notificationUtils.ts  repeatUtils.ts  timeValidation.ts
   `; // [🔴 사용자 작업] 실제 파일 구조로 업데이트 필요
 
   // AI가 꼭 봐야 하는 핵심 파일 4개
@@ -119,10 +121,10 @@ const userAnswers = `
 
 **2. ID 관리:**
 * **답변:** 모든 반복 이벤트 그룹을 식별할 **\`seriesId?: string | null\`** 필드를 \`Event\` 타입에 추가합니다.
-    * 신규 반복 일정 생성 시, \`seriesId\`는 생성된 \`id\`와 동일한 값으로 설정됩니다.
-    * 계산된 각 발생(인스턴스)은 이 \`seriesId\`를 공유합니다.
-    * 단일 수정된 이벤트의 \`seriesId\`는 \`null\`이 됩니다.
-    * 일반 단일 이벤트는 \`seriesId\` 필드가 \`undefined\`입니다.
+    * 신규 반복 일정 생성 시, \`seriesId\`는 생성된 \`id\`와 동일한 값으로 설정됩니다.
+    * 계산된 각 발생(인스턴스)은 이 \`seriesId\`를 공유합니다.
+    * 단일 수정된 이벤트의 \`seriesId\`는 \`null\`이 됩니다.
+    * 일반 단일 이벤트는 \`seriesId\` 필드가 \`undefined\`입니다.
 
 **3. 단일 수정/삭제 처리:**
 * **수정 시 답변:** 예, 원본 이벤트에 **\`exceptionDates?: string[]\`** 필드를 추가하여 관리합니다. '해당 일정만 수정' 시, 해당 날짜를 \`exceptionDates\`에 추가하고, 수정된 내용은 **\`seriesId: null\`인 새로운 단일 \`Event\` 객체**로 생성(POST)합니다.
@@ -145,19 +147,19 @@ const userAnswers = `
 
 **7. 수정 요청 (\`PUT /api/events/{id}\`):**
 * **답변:** **'단일 수정'**과 **'전체 수정'**은 **API 요청 방식 자체를 다르게** 합니다.
-    * **단일 수정:** \`POST /api/events\` (새 단일 이벤트 생성) + \`PUT /api/events/{seriesId}\` (원본에 예외 날짜 추가)의 **2단계**로 요청합니다. \`updateScope\` 플래그는 필요 없습니다.
-    * **전체 수정:** \`PUT /api/events/{seriesId}\` **단일 요청**으로 원본 시리즈의 데이터를 직접 업데이트합니다.
+    * **단일 수정:** \`POST /api/events\` (새 단일 이벤트 생성) + \`PUT /api/events/{seriesId}\` (원본에 예외 날짜 추가)의 **2단계**로 요청합니다. \`updateScope\` 플래그는 필요 없습니다.
+    * **전체 수정:** \`PUT /api/events/{seriesId}\` **단일 요청**으로 원본 시리즈의 데이터를 직접 업데이트합니다.
 
 **8. 삭제 요청 (\`DELETE /api/events/{id}\`):**
 * **답변:** **'단일 삭제'**와 **'전체 삭제'**는 **API 요청 방식 자체를 다르게** 합니다.
-    * **단일 삭제:** **\`PUT /api/events/{seriesId}\`** 요청을 사용하며, 요청 본문에 삭제할 날짜 정보(예: \`{ "addExceptionDate": "YYYY-MM-DD" }\`)를 포함하여 **예외 처리**를 요청합니다. \`deleteScope\` 플래그는 필요 없습니다.
-    * **전체 삭제:** **\`DELETE /api/events/{seriesId}\`** 요청으로 원본 시리즈를 완전히 삭제합니다.
+    * **단일 삭제:** **\`PUT /api/events/{seriesId}\`** 요청을 사용하며, 요청 본문에 삭제할 날짜 정보(예: \`{ "addExceptionDate": "YYYY-MM-DD" }\`)를 포함하여 **예외 처리**를 요청합니다. \`deleteScope\` 플래그는 필요 없습니다.
+    * **전체 삭제:** **\`DELETE /api/events/{seriesId}\`** 요청으로 원본 시리즈를 완전히 삭제합니다.
 
 #### **5. 기타 (UI/UX)**
 
 **9. 반복 아이콘:**
 * **답변:** 아이콘 표시는 **\`event.seriesId\` 필드가 존재하고 \`null\`이 아닌 경우** (\`typeof event.seriesId === 'string' && event.seriesId.length > 0\`)를 기준으로 합니다.
-    * 단일 수정되어 \`seriesId\`가 \`null\`이 된 이벤트는 이 조건에 해당하지 않으므로 아이콘이 자동으로 사라집니다.
+    * 단일 수정되어 \`seriesId\`가 \`null\`이 된 이벤트는 이 조건에 해당하지 않으므로 아이콘이 자동으로 사라집니다.
 
 ---
 #### **[보강 질문 답변]**
@@ -181,11 +183,20 @@ const userAnswers = `
 * **답변:** **\`useEventOperations\` 훅이 모달 상태와 액션 함수를 반환**하는 방식 (\`return { ..., isConfirmModalOpen, confirmSingleAction, confirmAllAction, cancelAction }\`)을 사용합니다.
 `;
 
+// --- [✅ 수정] 현재 파일 경로 및 에이전트 이름 정의 ---
+const __filename = fileURLToPath(import.meta.url);
+const agentName = '1-2. 기능 설계 (최종 명세서)';
+
 // --- (실행) ---
 async function runCreateSpecification() {
-  console.log('--- 1단계 (2/2): 최종 기능 명세서 작성 시작 ---');
-  const projectContext = getProjectContext();
-  const userPrompt = `
+  console.log(`--- ${agentName} 시작 ---`);
+  // [✅ 수정] outputFilePath와 success 플래그를 try/catch/finally 블록 바깥에 선언
+  let success = false;
+  let outputFilePath = path.join('tdd-automation', 'logs', 'output-02-feature-spec.md'); // 초기 경로 설정
+
+  try {
+    const projectContext = getProjectContext();
+    const userPrompt = `
 [1. 기존 프로젝트 컨텍스트]
 ${projectContext}
 [2. 새로운 기능 요구사항]
@@ -198,31 +209,37 @@ ${userAnswers}
 **[⭐강조]** '데이터 모델 변경' 섹션에는 관련된 모든 타입(Event, EventForm, RepeatInfo, EventInstance)의 *완전한 최종 정의*를 반드시 포함해야 합니다.
 (체크리스트, 입력/출력 예시 포함)
 `;
-  try {
     const specMarkdown = await runAgent(SYSTEM_PROMPT_DESIGN, userPrompt);
     // [보강] 명세서 저장 전 마크다운 정리 (코드 블록 방지)
     const cleanedSpec = specMarkdown
       .replace(/^```(markdown)?\s*[\r\n]/im, '')
       .replace(/```\s*$/im, '')
       .trim();
-    const outputFilePath = './tdd-automation/output-02-feature-spec.md';
+    // 로그 폴더 생성 확인 (path.join 사용)
+    const logDir = path.dirname(outputFilePath);
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+
     await fs.promises.writeFile(outputFilePath, cleanedSpec);
     console.log('--- 최종 기능 명세서 작성 완료 ---');
-    console.log(`👉 ${outputFilePath} 파일을 확인해주세요.`);
+    // [✅ 수정] path.relative를 사용하여 로그 경로 출력
+    console.log(`👉 ${path.relative(process.cwd(), outputFilePath)} 파일을 확인해주세요.`);
     console.log('✅ 다음 단계 [2. 테스트 설계]로 진행할 준비가 되었습니다.');
+    success = true; // 성공 플래그 설정
   } catch (error) {
-    // runAgent에서 이미 에러 처리
-    console.error('1단계 명세서 작성 중 최종 오류 발생.');
-    process.exit(1);
+    console.error('1단계 명세서 작성 중 최종 오류 발생.'); // success는 false 유지
   } finally {
     // [✅ 수정] 체크리스트 생성 및 저장 로직
+    const relativeOutputPath = path.relative(process.cwd(), outputFilePath); // 상대 경로 계산
     const checklistItems = [
       'PRD 및 프로젝트 컨텍스트 분석 수행 시도',
-      '기능 구현에 필요한 기술적 질문 리스트 생성 시도',
-      `산출물(${path.relative(process.cwd(), outputFilePath)}) 생성 시도`,
-      // AI의 구체적인 행동 평가는 어려우므로 '시도'로 표현
+      '질문에 대한 답변을 포함하여 최종 명세서 작성 시도',
+      '데이터 모델 변경 섹션에 모든 관련 타입의 완전한 정의 포함 시도',
+      `산출물(${relativeOutputPath}) 생성 시도`,
     ];
-    // saveAgentChecklist 호출 (에러 발생해도 체크리스트는 저장)
+
+    // saveAgentChecklist 호출 시 __filename 사용 (현재 파일 경로)
     saveAgentChecklist(agentName, __filename, { success, outputFilePath }, checklistItems);
 
     if (!success) {
