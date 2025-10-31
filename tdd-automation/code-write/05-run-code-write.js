@@ -180,45 +180,8 @@ async function runCodeWriteAndReview() {
     const specMarkdown = readFileContent('./tdd-automation/logs/output-02-feature-spec.md');
     let projectContext = getProjectContext();
 
-    const tasks = [
-      {
-        codePath: 'src/types.ts',
-        testPath: 'src/__tests__/unit/repeatUtils.spec.ts',
-        instruction:
-          "명세서 3항(데이터 모델 변경)에 따라 'Event', 'RepeatInfo', 'RepeatType', 'EventInstance' 타입을 최종 명세서대로 정확히 수정/정의합니다.",
-        detail: '데이터 모델 업데이트',
-        commitMessage: `feat(tdd): [TDD 4/7] src/types.ts 기능 구현 (GREEN/REVIEWED)`,
-      },
-      {
-        codePath: 'src/utils/repeatUtils.ts',
-        testPath: 'src/__tests__/unit/repeatUtils.spec.ts',
-        instruction: "명세서 4.1항에 따라 'generateRecurringEvents' 함수를 구현합니다.",
-        detail: '반복 로직 구현',
-        commitMessage: `feat(tdd): [TDD 4/7] src/utils/repeatUtils.ts 기능 구현 (GREEN/REVIEWED)`,
-      },
-      {
-        codePath: 'src/hooks/useEventForm.ts',
-        testPath: 'src/__tests__/hooks/medium.useEventOperations.spec.ts',
-        instruction:
-          "명세서 2항/5항 및 업데이트된 `src/types.ts`에 따라 폼 상태(state)에 'seriesId'와 'RepeatInfo' 타입 변경을 반영하고, 관련 폼 처리 로직을 수정합니다.",
-        detail: '폼 상태 업데이트',
-        commitMessage: `feat(tdd): [TDD 4/7] src/hooks/useEventForm.ts 기능 구현 (GREEN/REVIEWED)`,
-      },
-      {
-        codePath: 'src/hooks/useCalendarView.ts',
-        testPath: 'src/__tests__/hooks/easy.useCalendarView.spec.ts',
-        instruction: "명세서에 따라 'generateRecurringEvents'를 호출하도록 훅 로직을 수정합니다.",
-        detail: '뷰 로직',
-        commitMessage: `feat(tdd): [TDD 4/7] src/hooks/useCalendarView.ts 기능 구현 (GREEN/REVIEWED)`,
-      },
-      {
-        codePath: 'src/hooks/useEventOperations.ts',
-        testPath: 'src/__tests__/hooks/medium.useEventOperations.spec.ts',
-        instruction: "명세서 4.2항에 따라 '단일/전체 수정/삭제' 로직과 모달 상태를 구현합니다.",
-        detail: 'CRUD 로직',
-        commitMessage: `feat(tdd): [TDD 4/7] src/hooks/useEventOperations.ts 기능 구현 (GREEN/REVIEWED)`,
-      },
-    ];
+    const config = JSON.parse(readFileContent('./tdd-automation/config.json'));
+    const tasks = config.codeWrite.tasks;
 
     for (const task of tasks) {
       console.log(`\n--- [작업 시작] ${path.basename(task.codePath)} ---`);

@@ -187,24 +187,8 @@ ${readFileContent('src/__tests__/utils.ts', true)}
 ${readFileContent('src/utils/dateUtils.ts', true)}
 `;
 
-    // 3. 대상 테스트 파일 정의
-    const targets = [
-      {
-        path: 'src/__tests__/unit/repeatUtils.spec.ts',
-        promptDetail: "'generateRecurringEvents' 함수용",
-        existing: false,
-      },
-      {
-        path: 'src/__tests__/hooks/medium.useEventOperations.spec.ts',
-        promptDetail: '반복 일정 수정/삭제용',
-        existing: true,
-      },
-      {
-        path: 'src/__tests__/hooks/easy.useCalendarView.spec.ts',
-        promptDetail: '반복 일정 렌더링용',
-        existing: true,
-      },
-    ];
+    const config = JSON.parse(readFileContent('./tdd-automation/config.json'));
+    const targets = config.testDesign.targets;
 
     for (const target of targets) {
       console.log(`\n... ${path.basename(target.path)} 빈 테스트 셸 생성 중 ...`);

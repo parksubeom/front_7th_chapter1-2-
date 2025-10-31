@@ -1,0 +1,92 @@
+{
+  "designAnalysis": {
+    "contextFiles": [
+      "src/types.ts",
+      "src/hooks/useEventOperations.ts",
+      "src/hooks/useEventForm.ts",
+      "src/utils/dateUtils.ts",
+      "src/hooks/useCalendarView.ts",
+      "src/utils/eventOverlap.ts",
+      "server.js"
+    ]
+  },
+  "designSpec": {
+    "contextFiles": [
+      "src/types.ts",
+      "src/hooks/useEventOperations.ts",
+      "src/hooks/useEventForm.ts",
+      "src/utils/dateUtils.ts",
+      "src/hooks/useCalendarView.ts",
+      "src/utils/eventOverlap.ts"
+    ]
+  },
+  "testDesign": {
+    "targets": [
+      {
+        "path": "src/__tests__/unit/repeatUtils.spec.ts",
+        "promptDetail": "'generateRecurringEvents' 함수용",
+        "existing": false
+      },
+      {
+        "path": "src/__tests__/hooks/medium.useEventOperations.spec.ts",
+        "promptDetail": "반복 일정 수정/삭제용",
+        "existing": true
+      },
+      {
+        "path": "src/__tests__/hooks/easy.useCalendarView.spec.ts",
+        "promptDetail": "반복 일정 렌더링용",
+        "existing": true
+      }
+    ]
+  },
+  "testWrite": {
+    "targets": [
+      {
+        "path": "./src/__tests__/unit/repeatUtils.spec.ts",
+        "detail": "'generateRecurringEvents' 함수용"
+      },
+      {
+        "path": "./src/__tests__/hooks/medium.useEventOperations.spec.ts",
+        "detail": "반복 일정 수정/삭제용"
+      },
+      {
+        "path": "./src/__tests__/hooks/easy.useCalendarView.spec.ts",
+        "detail": "반복 일정 렌더링용"
+      }
+    ]
+  },
+  "codeWrite": {
+    "tasks": [
+      {
+        "codePath": "src/types.ts",
+        "testPath": "src/__tests__/unit/repeatUtils.spec.ts",
+        "instruction": "명세서 3항(데이터 모델 변경)에 따라 'Event', 'RepeatInfo', 'RepeatType', 'EventInstance' 타입을 최종 명세서대로 정확히 수정/정의합니다.",
+        "detail": "데이터 모델 업데이트"
+      },
+      {
+        "codePath": "src/utils/repeatUtils.ts",
+        "testPath": "src/__tests__/unit/repeatUtils.spec.ts",
+        "instruction": "명세서 4.1항에 따라 'generateRecurringEvents' 함수를 구현합니다.",
+        "detail": "반복 로직 구현"
+      },
+      {
+        "codePath": "src/hooks/useEventForm.ts",
+        "testPath": "src/__tests__/hooks/medium.useEventOperations.spec.ts",
+        "instruction": "명세서 2항/5항 및 업데이트된 `src/types.ts`에 따라 폼 상태(state)에 'seriesId'와 'RepeatInfo' 타입 변경을 반영하고, 관련 폼 처리 로직을 수정합니다.",
+        "detail": "폼 상태 업데이트"
+      },
+      {
+        "codePath": "src/hooks/useCalendarView.ts",
+        "testPath": "src/__tests__/hooks/easy.useCalendarView.spec.ts",
+        "instruction": "명세서에 따라 'generateRecurringEvents'를 호출하도록 훅 로직을 수정합니다.",
+        "detail": "뷰 로직"
+      },
+      {
+        "codePath": "src/hooks/useEventOperations.ts",
+        "testPath": "src/__tests__/hooks/medium.useEventOperations.spec.ts",
+        "instruction": "명세서 4.2항에 따라 '단일/전체 수정/삭제' 로직과 모달 상태를 구현합니다.",
+        "detail": "CRUD 로직"
+      }
+    ]
+  }
+}

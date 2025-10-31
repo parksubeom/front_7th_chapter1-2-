@@ -12,64 +12,7 @@ const agentName = '1-1. 기능 설계 (질문 생성)';
 
 // --- (준비 1) PRD ---
 // [✅ 보강] 사용자가 제공한 최신 필수 스펙으로 교체
-const newFeatureSpec = `
-# 📖 반복 일정 기능: 필수 스펙 및 구현 가이드
-
-## 1. 반복 유형 선택
-
--   [ ] 일정 생성 또는 수정 시 반복 유형을 선택할 수 있다.
--   [ ] 반복 유형은 다음과 같다: 매일, 매주, 매월, 매년
--   [ ] **특수 규칙 (31일/윤년):**
-    -   [ ] 31일에 매월을 선택한다면 → **매월 마지막 날이 아닌**, 31일에만 생성해야 한다.
-        * **구현 예시:** \`Event.date\`가 '2025-01-31'이고 \`repeat.type\`이 'monthly'인 경우, 2월에는 생성되지 않고(날짜 없음), 3월 31일에는 생성된다.
-    -   [ ] 윤년 2월 29일에 매년을 선택한다면 → **윤년에만** 생성해야 한다.
-        * **구현 예시:** \`Event.date\`가 '2024-02-29'이고 \`repeat.type\`이 'yearly'인 경우, 2025년/2026년/2027년에는 생성되지 않고, 다음 윤년인 '2028-02-29'에 생성된다.
--   [ ] 반복일정은 일정 겹침을 고려하지 않는다. (겹침 검사 로직(\`eventOverlap.ts\`)을 이 기능 구현 시에는 호출하지 않는다.)
-
-## 2. 반복 일정 표시
-
--   [ ] 캘린더 뷰에서 반복 일정을 아이콘(예: 🔄)을 넣어 구분하여 표시한다.
--   [ ] **데이터 기준:** 렌더링되는 이벤트 객체(\`EventInstance\`)의 \`seriesId\` 필드가 \`string\`이고 \`null\`이 아닌 경우 아이콘을 표시한다.
-
-## 3. 반복 종료
-
--   [ ] 반복 종료 조건을 지정할 수 있다.
--   [ ] 옵션: 특정 날짜까지 (\`RepeatInfo.endDate\`)
-    -   **제약:** UI(\`useEventForm\` 훅)는 사용자가 \`2025-12-31\`을 초과하는 날짜를 선택하지 못하도록 **유효성 검사**를 수행한다.
-    -   **구현 예시:** \`endDate\`가 '2025-11-30'이면, 12월 1일의 반복 일정은 생성되지 않는다.
-
-## 4. 반복 일정 수정
-
-#### 4.1. '예' 선택 시 (단일 수정)
-
--   [ ] 반복일정을 수정하면 **독립된 단일 일정**으로 변경된다.
--   [ ] **아이콘이 사라진다.**
--   [ ] **구현 상세 (2단계 API 호출):**
-    1.  **\`POST /api/events\`:** 수정된 내용으로 **새로운 \`Event\` 객체**를 생성한다. 이 객체의 \`seriesId\`는 **\`null\`**로 설정한다. (이로 인해 2번 스펙에 따라 아이콘이 사라짐)
-    2.  **\`PUT /api/events/{seriesId}\`:** 원본 이벤트(Master)의 \`exceptionDates\` 배열에 이 일정의 날짜(예: '2025-10-30')를 추가하여 예외 처리한다.
-
-#### 4.2. '아니오' 선택 시 (전체 수정)
-
--   [ ] 이 경우 **반복 일정(시리즈) 전체**가 수정된다.
--   [ ] **아이콘이 유지**된다.
--   [ ] **구현 상세 (단일 API 호출):**
-    1.  **\`PUT /api/events/{seriesId}\`:** \`seriesId\`를 기준으로 원본 이벤트의 \`title\` 등 내용 자체를 수정한다. \`seriesId\`는 변경되지 않으므로 아이콘이 유지된다.
-
-## 5. 반복 일정 삭제
-
-#### 5.1. '예' 선택 시 (단일 삭제)
-
--   [ ] 해당 일정만 삭제된다. (데이터는 보존하고 예외 처리)
--   [ ] **구현 상세 (수정 API 호출):**
-    1.  **\`DELETE\`가 아님.** \`PUT /api/events/{seriesId}\`를 호출한다.
-    2.  **요청 본문:** \`{ "addExceptionDate": "YYYY-MM-DD" }\` 형식으로 삭제할 날짜를 전송하여, 원본 이벤트의 \`exceptionDates\`에 추가한다.
-
-#### 5.2. '아니오' 선택 시 (전체 삭제)
-
--   [ ] 반복 일정의 모든 일정을 삭제할 수 있다.
--   [ ] **구현 상세 (삭제 API 호출):**
-    1.  **\`DELETE /api/events/{seriesId}\`**를 호출하여 원본(Master) 이벤트를 DB에서 완전히 삭제한다.
-`;
+const newFeatureSpec = readFileContent('./tdd-automation/logs/input-feature-spec.md');
 
 // --- (준비 2) 헬퍼 함수 및 컨텍스트 ---
 const readFileContent = (filePath) => {
@@ -87,78 +30,17 @@ const readFileContent = (filePath) => {
 };
 
 function getProjectContext() {
-  const fileStructure = `
-[프로젝트 파일 구조 (ls -R src)]
-src:
-App.tsx         __tests__       hooks           setupTests.ts   utils
-__mocks__       apis            main.tsx        types.ts        vite-env.d.ts
+  const config = JSON.parse(readFileContent('./tdd-automation/config.json'));
+  const contextFiles = config.designAnalysis.contextFiles;
 
-src/__mocks__:
-handlers.ts             handlersUtils.ts        response
+  let context = '[프로젝트 주요 파일 컨텍스트]\n';
+  contextFiles.forEach(filePath => {
+    const content = readFileContent(filePath);
+    context += `---\n[${filePath}]\n${content}\n`;
+  });
+  context += '---';
 
-src/__mocks__/response:
-events.json     realEvents.json
-
-src/__tests__:
-hooks                           unit
-medium.integration.spec.tsx     utils.ts
-
-src/__tests__/hooks:
-easy.useCalendarView.spec.ts            medium.useEventOperations.spec.ts
-easy.useSearch.spec.ts                  medium.useNotifications.spec.ts
-
-src/__tests__/unit:
-easy.dateUtils.spec.ts          easy.fetchHolidays.spec.ts
-easy.eventOverlap.spec.ts       easy.notificationUtils.spec.ts
-easy.eventUtils.spec.ts         easy.timeValidation.spec.ts
-
-src/apis:
-fetchHolidays.ts
-
-src/hooks:
-useCalendarView.ts      useEventOperations.ts   useSearch.ts
-useEventForm.ts         useNotifications.ts
-
-src/utils:
-dateUtils.ts            eventUtils.ts           timeValidation.ts
-eventOverlap.ts         notificationUtils.ts
-  `; // [✅ 6개 핵심 파일로 확장]
-
-  const typesContent = readFileContent('src/types.ts');
-  const eventOpsContent = readFileContent('src/hooks/useEventOperations.ts');
-  const eventFormContent = readFileContent('src/hooks/useEventForm.ts');
-  const dateUtilsContent = readFileContent('src/utils/dateUtils.ts');
-
-  // [✅ 추가 1] 캘린더 뷰 훅 (반복 일정 표시 로직 통합 지점)
-  const calendarViewContent = readFileContent('src/hooks/useCalendarView.ts');
-  // [✅ 추가 2] 일정 겹침 유틸 (반복 일정 겹침 미고려 스펙 처리 참고)
-  const eventOverlapContent = readFileContent('src/utils/eventOverlap.ts');
-
-  return `
-${fileStructure}
----
-[핵심 파일 1: src/types.ts - 데이터 모델]
-${typesContent}
----
-[핵심 파일 2: src/hooks/useEventOperations.ts - CRUD/API 로직]
-${eventOpsContent}
----
-[핵심 파일 3: src/hooks/useEventForm.ts - 폼/유효성 로직]
-${eventFormContent}
----
-[핵심 파일 4: src/utils/dateUtils.ts - 날짜 유틸]
-${dateUtilsContent}
----
-[핵심 파일 5: src/hooks/useCalendarView.ts - 캘린더 뷰 로직]
-${calendarViewContent}
----
-[핵심 파일 6: src/utils/eventOverlap.ts - 일정 겹침 로직]
-${eventOverlapContent}
----
-[핵심 파일 7: server.js - api 설계 시 참고 모델]
-${eventOverlapContent}
----
-`;
+  return context;
 }
 
 // --- (실행) ---

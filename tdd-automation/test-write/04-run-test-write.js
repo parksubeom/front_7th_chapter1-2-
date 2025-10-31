@@ -188,18 +188,8 @@ ${readFileContent('src/utils/dateUtils.ts', true)}
 ${readFileContent('src/utils/eventUtils.ts', true)}
 `;
 
-    // 3. 로직을 채워야 할 테스트 파일 목록
-    const testTargets = [
-      {
-        path: './src/__tests__/unit/repeatUtils.spec.ts',
-        detail: "'generateRecurringEvents' 함수용",
-      },
-      {
-        path: './src/__tests__/hooks/medium.useEventOperations.spec.ts',
-        detail: '반복 일정 수정/삭제용',
-      },
-      { path: './src/__tests__/hooks/easy.useCalendarView.spec.ts', detail: '반복 일정 렌더링용' },
-    ];
+    const config = JSON.parse(readFileContent('./tdd-automation/config.json'));
+    const testTargets = config.testWrite.targets;
 
     for (const target of testTargets) {
       const testPath = target.path;
