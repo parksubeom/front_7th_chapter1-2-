@@ -14,7 +14,16 @@
     "build": "tsc -b && vite build",
     "lint:eslint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "lint:tsc": "tsc --pretty",
-    "lint": "pnpm lint:eslint && pnpm lint:tsc"
+    "lint": "pnpm lint:eslint && pnpm lint:tsc",
+    "tdd:design-analysis": "node tdd-automation/design/01-run-design-analysis.js",
+    "tdd:design-spec": "node tdd-automation/design/02-run-design-spec.js",
+    "tdd:test-design": "node tdd-automation/test-design/03-run-test-design.js",
+    "tdd:test-write": "node tdd-automation/test-write/04-run-test-write.js",
+    "tdd:code-write": "node tdd-automation/code-write/05-run-code-write.js",
+    "tdd:code-fix": "node tdd-automation/code-fix/06-run-code-fix.js",
+    "tdd:ui-implement": "node tdd-automation/ui-implement/07-run-ui-implementation.js",
+    "tdd:refactor": "node tdd-automation/refactor/08-run-refactor.js",
+    "tdd:all": "pnpm tdd:design-analysis && pnpm tdd:design-spec && pnpm tdd:test-design && pnpm tdd:test-write && pnpm tdd:code-write && pnpm tdd:code-fix && pnpm tdd:ui-implement && pnpm tdd:refactor"
   },
   "dependencies": {
     "@emotion/react": "^11.11.4",
