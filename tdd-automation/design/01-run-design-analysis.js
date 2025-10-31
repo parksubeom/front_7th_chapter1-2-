@@ -155,6 +155,9 @@ ${calendarViewContent}
 [핵심 파일 6: src/utils/eventOverlap.ts - 일정 겹침 로직]
 ${eventOverlapContent}
 ---
+[핵심 파일 7: server.js - api 설계 시 참고 모델]
+${eventOverlapContent}
+---
 `;
 }
 
