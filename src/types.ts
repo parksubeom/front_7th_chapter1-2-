@@ -1,129 +1,55 @@
-import { Event, EventInstance } from '../types';
+export type RepeatType = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
-// UTC functions are crucial for avoiding timezone-related errors,
-// ensuring that date calculations are consistent regardless of the execution environment.
-const parseDateUTC = (dateStr: string): Date => {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  // Months are 0-indexed in JavaScript's Date object.
-  return new Date(Date.UTC(year, month - 1, day));
-};
+/**
+ * 반복 정보 타입
+ * @property {RepeatType} type - 반복 유형
+ * @property {number} interval - 반복 간격 (예: 2주마다)
+ * @property {string} [endDate] - 반복 종료 날짜 (YYYY-MM-DD)
+ */
+export interface RepeatInfo {
+  type: RepeatType;
+  interval: number;
+  endDate?: string;
+}
 
-const toYYYYMMDD_UTC = (date: Date): string => {
-  // .toISOString() returns a string in the format 'YYYY-MM-DDTHH:mm:ss.sssZ'.
-  // We only need the date part.
-  return date.toISOString().slice(0, 10);
-};
+/**
+ * 이벤트 폼 데이터 타입
+ */
+export interface EventForm {
+  title: string;
+  date: string; // 시리즈의 시작 날짜 (YYYY-MM-DD)
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  description: string;
+  location: string;
+  category: string;
+  repeat: RepeatInfo;
+  notificationTime: number; // 분 단위
+}
 
-export const generateRecurringEvents = (
-  events: Event[],
-  viewStartDate: Date,
-  viewEndDate: Date
-): EventInstance[] => {
-  const instances: EventInstance[] = [];
-  const viewStart = parseDateUTC(toYYYYMMDD_UTC(viewStartDate));
-  const viewEnd = parseDateUTC(toYYYYMMDD_UTC(viewEndDate));
+/**
+ * 데이터베이스에 저장되는 이벤트 객체 타입
+ * @property {string} id - 이벤트의 고유 ID
+ * @property {string | null} [seriesId] - 반복 시리즈의 원본 ID.
+ * - 신규 반복 일정: `id`와 동일한 값으로 설정.
+ * - 단일로 수정된 일정: `null`로 설정.
+ * - 일반 단일 일정: `undefined`.
+ * @property {string[]} [exceptionDates] - 반복에서 제외할 날짜 배열 (YYYY-MM-DD).
+ */
+export interface Event extends EventForm {
+  id: string;
+  seriesId?: string | null;
+  exceptionDates?: string[];
+}
 
-  for (const event of events) {
-    // According to tests, this function should only generate instances for actual recurring events.
-    // Events with `seriesId: null` or `type: 'none'` are handled as single events elsewhere.
-    if (!event.seriesId || event.repeat.type === 'none') {
-      continue;
-    }
-
-    const { type, interval, endDate: repeatEndDateStr } = event.repeat;
-    const seriesId = event.seriesId;
-    const exceptionDates = new Set(event.exceptionDates || []);
-    const startDate = parseDateUTC(event.date);
-
-    const repeatEndDate = repeatEndDateStr ? parseDateUTC(repeatEndDateStr) : null;
-
-    // Determine the final date for the loop. It's the earlier of the view's end or the series' own end date.
-    const loopEndDate = repeatEndDate && repeatEndDate < viewEnd ? repeatEndDate : viewEnd;
-
-    // Skip this event entirely if its repetition starts after our loop's effective end date.
-    if (startDate > loopEndDate) {
-      continue;
-    }
-
-    // Use a simple, direct iteration for daily and weekly recurrences.
-    if (type === 'daily' || type === 'weekly') {
-      let currentDate = new Date(startDate.getTime());
-      while (currentDate <= loopEndDate) {
-        if (currentDate >= viewStart) {
-          const currentDateStr = toYYYYMMDD_UTC(currentDate);
-          if (!exceptionDates.has(currentDateStr)) {
-            const { id, date, ...rest } = event;
-            instances.push({
-              ...rest,
-              instanceId: `${seriesId}-${currentDateStr.replace(/-/g, '')}`,
-              date: currentDateStr,
-              seriesId,
-            });
-          }
-        }
-        if (type === 'daily') {
-          currentDate.setUTCDate(currentDate.getUTCDate() + interval);
-        } else {
-          // 'weekly'
-          currentDate.setUTCDate(currentDate.getUTCDate() + interval * 7);
-        }
-      }
-    }
-    // For monthly and yearly, calculating each occurrence from the start date is more robust
-    // and correctly handles edge cases like the 31st of a month or leap years.
-    else if (type === 'monthly' || type === 'yearly') {
-      const startYear = startDate.getUTCFullYear();
-      const startMonth = startDate.getUTCMonth();
-      const startDay = startDate.getUTCDate();
-
-      for (let i = 0; ; i++) {
-        let nextDate: Date;
-
-        if (type === 'monthly') {
-          const totalMonths = startMonth + i * interval;
-          const targetYear = startYear + Math.floor(totalMonths / 12);
-          const targetMonth = totalMonths % 12;
-
-          nextDate = new Date(Date.UTC(targetYear, targetMonth, startDay));
-
-          // If the resulting date's month doesn't match the target month, it means the
-          // original day doesn't exist in the target month (e.g., April 31). Skip it.
-          if (nextDate.getUTCMonth() !== targetMonth) {
-            continue;
-          }
-        } else {
-          // 'yearly'
-          const targetYear = startYear + i * interval;
-          nextDate = new Date(Date.UTC(targetYear, startMonth, startDay));
-
-          // If the resulting date's month isn't the original month, it means it was a leap day
-          // in a non-leap year (e.g., Feb 29, 2025 -> Mar 1, 2025). Skip it.
-          if (nextDate.getUTCMonth() !== startMonth) {
-            continue;
-          }
-        }
-
-        // If the calculated next date is beyond our loop's boundary, we are done with this series.
-        if (nextDate > loopEndDate) {
-          break;
-        }
-
-        // If the date is within the current view, add it to our results.
-        if (nextDate >= viewStart) {
-          const currentDateStr = toYYYYMMDD_UTC(nextDate);
-          if (!exceptionDates.has(currentDateStr)) {
-            const { id, date, ...rest } = event;
-            instances.push({
-              ...rest,
-              instanceId: `${seriesId}-${currentDateStr.replace(/-/g, '')}`,
-              date: currentDateStr,
-              seriesId,
-            });
-          }
-        }
-      }
-    }
-  }
-
-  return instances;
-};
+/**
+ * 화면 렌더링에 사용되는 가상 이벤트 인스턴스 타입 (신규 정의)
+ * @property {string} instanceId - 각 발생의 고유 ID. 형식: `${seriesId}-${YYYYMMDD}`.
+ * @property {string} date - 해당 발생의 실제 날짜.
+ * @property {string} seriesId - 원본 이벤트의 ID. 아이콘 표시에 사용됩니다.
+ */
+export interface EventInstance extends Omit<Event, 'id' | 'date'> {
+  instanceId: string; // 캘린더 key 등으로 사용될 고유 ID
+  date: string;       // 이 인스턴스가 발생하는 실제 날짜
+  seriesId: string;   // 원본 시리즈 ID (null이 아님)
+}

@@ -472,32 +472,28 @@ function App() {
                   <MenuItem value="yearly">매년</MenuItem>
                 </Select>
               </FormControl>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <FormControl fullWidth>
-                    <FormLabel>반복 간격</FormLabel>
-                    <TextField
-                      size="small"
-                      type="number"
-                      value={repeatInterval}
-                      onChange={(e) => setRepeatInterval(Number(e.target.value))}
-                      inputProps={{ min: 1 }}
-                    />
-                  </FormControl>
-                </Grid>
-                <Grid item xs={6}>
-                  <FormControl fullWidth>
-                    <FormLabel>반복 종료일</FormLabel>
-                    <TextField
-                      size="small"
-                      type="date"
-                      value={repeatEndDate}
-                      onChange={(e) => setRepeatEndDate(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </FormControl>
-                </Grid>
-              </Grid>
+             <Stack direction="row" spacing={2}>
+                <FormControl fullWidth>
+                  <FormLabel>반복 간격</FormLabel>
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={repeatInterval}
+                    onChange={(e) => setRepeatInterval(Number(e.target.value))}
+                    inputProps={{ min: 1 }}
+                  />
+                </FormControl>
+                <FormControl fullWidth>
+                  <FormLabel>반복 종료일</FormLabel>
+                  <TextField
+                    size="small"
+                    type="date"
+                    value={repeatEndDate}
+                    onChange={(e) => setRepeatEndDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </FormControl>
+              </Stack>
             </Stack>
           )}
 
@@ -607,7 +603,7 @@ function App() {
                       <Typography>{event.description}</Typography>
                       <Typography>{event.location}</Typography>
                       <Typography>카테고리: {event.category}</Typography>
-                      {event.repeat.type !== 'none' && (
+                      {'repeat' in event && event.repeat.type !== 'none' && (
                         <Typography>
                           반복: {event.repeat.interval}
                           {event.repeat.type === 'daily' && '일'}
