@@ -125,9 +125,9 @@ describe('반복 일정 렌더링 로직 (useCalendarView)', () => {
     });
 
     expect(result.current.viewEvents[0].date).toBe('2025-10-01');
-    expect(result.current.viewEvents[0].instanceId).toBe('series-1-20251001');
+    expect((result.current.viewEvents[0] as EventInstance).instanceId).toBe('series-1-20251001');
     expect(result.current.viewEvents[30].date).toBe('2025-10-31');
-    expect(result.current.viewEvents[30].instanceId).toBe('series-1-20251031');
+    expect((result.current.viewEvents[30] as EventInstance).instanceId).toBe('series-1-20251031');
   });
 
   it('주간 뷰에서 매주 반복되는 일정이 해당 주에 올바르게 생성되어야 한다', async () => {
@@ -285,7 +285,7 @@ describe('반복 일정 렌더링 로직 (useCalendarView)', () => {
 
     await waitFor(() => expect(result.current.viewEvents).toHaveLength(31)); // 30개 인스턴스 + 1개 단일 이벤트
 
-    const eventOn15th = result.current.viewEvents.find((e) => e.date === '2025-10-15');
+    const eventOn15th = result.current.viewEvents.find((e) => e.date === '2025-10-15') as Event;
     expect(eventOn15th).toBeDefined();
     expect(eventOn15th.title).toBe('데일리 스크럼 (장소 변경)');
     expect(eventOn15th.id).toBe('event-123'); // EventInstance가 아니므로 'id'를 가짐

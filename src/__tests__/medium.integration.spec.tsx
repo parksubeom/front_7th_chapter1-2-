@@ -71,12 +71,12 @@ describe('일정 CRUD 및 기본 기능', () => {
     });
 
     const eventList = within(screen.getByTestId('event-list'));
-    expect(eventList.getByText('새 회의')).toBeInTheDocument();
-    expect(eventList.getByText('2025-10-15')).toBeInTheDocument();
-    expect(eventList.getByText('14:00 - 15:00')).toBeInTheDocument();
-    expect(eventList.getByText('프로젝트 진행 상황 논의')).toBeInTheDocument();
-    expect(eventList.getByText('회의실 A')).toBeInTheDocument();
-    expect(eventList.getByText('카테고리: 업무')).toBeInTheDocument();
+    expect(await eventList.findByText('새 회의')).toBeInTheDocument();
+    expect(await eventList.findByText('2025-10-15')).toBeInTheDocument();
+    expect(await eventList.findByText('14:00 - 15:00')).toBeInTheDocument();
+    expect(await eventList.findByText('프로젝트 진행 상황 논의')).toBeInTheDocument();
+    expect(await eventList.findByText('회의실 A')).toBeInTheDocument();
+    expect(await eventList.findByText('카테고리: 업무')).toBeInTheDocument();
   });
 
   it('기존 일정의 세부 정보를 수정하고 변경사항이 정확히 반영된다', async () => {
@@ -318,9 +318,9 @@ describe('일정 충돌', () => {
 
     await user.click(screen.getByTestId('event-submit-button'));
 
-    expect(screen.getByText('일정 겹침 경고')).toBeInTheDocument();
-    expect(screen.getByText(/다음 일정과 겹칩니다/)).toBeInTheDocument();
-    expect(screen.getByText('기존 회의 (2025-10-15 09:00-10:00)')).toBeInTheDocument();
+    expect(await screen.findByText('일정 겹침 경고')).toBeInTheDocument();
+    expect(await screen.findByText(/다음 일정과 겹칩니다/)).toBeInTheDocument();
+    expect(await screen.findByText('기존 회의 (2025-10-15 09:00-10:00)')).toBeInTheDocument();
   });
 });
 

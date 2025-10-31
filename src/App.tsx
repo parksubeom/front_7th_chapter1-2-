@@ -159,7 +159,7 @@ function App() {
     }
 
     const overlapping = findOverlappingEvents(eventData, events);
-    if (overlapping.length > 0 && !editingEvent) {
+    if (overlapping.length > 0) {
       setOverlappingEvents(overlapping);
       setIsOverlapDialogOpen(true);
     } else {
