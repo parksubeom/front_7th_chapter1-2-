@@ -22,12 +22,6 @@ vi.mock('notistack', async () => {
   };
 });
 
-// 명세서에 정의된 확장된 Event 타입을 테스트에서 사용합니다.
-interface RecurringEvent extends Event {
-  seriesId?: string | null;
-  exceptionDates?: string[];
-}
-
 it('저장되어있는 초기 이벤트 데이터를 적절하게 불러온다', async () => {
   const { result } = renderHook(() => useEventOperations(false));
 
@@ -181,7 +175,7 @@ it("네트워크 오류 시 '일정 삭제 실패'라는 텍스트가 노출되�
 describe('반복 일정 생성, 수정, 삭제 로직', () => {
   describe('반복 일정 생성', () => {
     it('신규 반복 일정 생성 시 POST /api/events가 호출되고, 응답받은 데이터의 id와 seriesId는 동일해야 한다', async () => {
-      const newRecurringEventForm: Omit<RecurringEvent, 'id'> = {
+      const newRecurringEventForm: Omit<Event, 'id'> = {
         title: '매일 반복되는 스크럼',
         date: '2025-11-01',
         startTime: '10:00',
@@ -196,7 +190,7 @@ describe('반복 일정 생성, 수정, 삭제 로직', () => {
       server.use(
         http.post('/api/events', async ({ request }) => {
           const newEvent = (await request.json()) as EventForm;
-          const createdEvent: RecurringEvent = {
+          const createdEvent: Event = {
             ...newEvent,
             id: 'series-123',
             seriesId: 'series-123',
@@ -209,12 +203,11 @@ describe('반복 일정 생성, 수정, 삭제 로직', () => {
       const { result } = renderHook(() => useEventOperations(false));
 
       await act(async () => {
-        // @ts-expect-error saveEvent는 EventForm을 인자로 받으므로 id를 제외하고 전달
-        await result.current.saveEvent(newRecurringEventForm);
+        await result.current.saveEvent(newRecurringEventForm as Event);
       });
 
       expect(result.current.events).toHaveLength(1);
-      const savedEvent = result.current.events[0] as RecurringEvent;
+      const savedEvent = result.current.events[0];
       expect(savedEvent.id).toBe('series-123');
       expect(savedEvent.seriesId).toBe('series-123');
       expect(savedEvent.title).toBe('매일 반복되는 스크럼');
@@ -222,7 +215,7 @@ describe('반복 일정 생성, 수정, 삭제 로직', () => {
   });
 
   describe('반복 일정 수정 (Update)', () => {
-    const originalSeries: RecurringEvent = {
+    const originalSeries: Event = {
       id: 'series-abc',
       seriesId: 'series-abc',
       title: '주간 회의',
@@ -256,7 +249,7 @@ describe('반복 일정 생성, 수정, 삭제 로직', () => {
       const { result } = renderHook(() => useEventOperations(true));
       await act(async () => {}); // 초기 데이터 로딩
 
-      const updatedInstanceData: RecurringEvent = {
+      const updatedInstanceData: Event = {
         ...originalSeries,
         id: '', // 새 이벤트이므로 id 없음
         date: '2025-11-10',
@@ -287,7 +280,7 @@ describe('반복 일정 생성, 수정, 삭제 로직', () => {
       const { result } = renderHook(() => useEventOperations(true));
       await act(async () => {});
 
-      const updatedInstanceData: RecurringEvent = {
+      const updatedInstanceData: Event = {
         ...originalSeries,
         id: '',
         date: '2025-11-10',
@@ -318,7 +311,7 @@ describe('반복 일정 생성, 수정, 삭제 로직', () => {
       const { result } = renderHook(() => useEventOperations(true));
       await act(async () => {});
 
-      const updatedInstanceData: RecurringEvent = { ...originalSeries, id: '', date: '2025-11-10', seriesId: 'series-abc' };
+      const updatedInstanceData: Event = { ...originalSeries, id: '', date: '2025-11-10', seriesId: 'series-abc' };
 
       await act(async () => {
         await result.current.updateEvent(updatedInstanceData, 'single');
@@ -341,7 +334,7 @@ describe('반복 일정 생성, 수정, 삭제 로직', () => {
       const { result } = renderHook(() => useEventOperations(true));
       await act(async () => {});
 
-      const updatedSeriesData: RecurringEvent = {
+      const updatedSeriesData: Event = {
         ...originalSeries,
         title: '새로운 시리즈 제목',
         location: '온라인',
@@ -359,7 +352,7 @@ describe('반복 일정 생성, 수정, 삭제 로직', () => {
   });
 
   describe('반복 일정 삭제 (Delete)', () => {
-    const originalSeries: RecurringEvent = {
+    const originalSeries: Event = {
       id: 'series-def',
       seriesId: 'series-def',
       title: '삭제 테스트용 주간 회의',
