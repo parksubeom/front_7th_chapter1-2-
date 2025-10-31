@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
 import {
@@ -50,8 +50,7 @@ it('정의된 이벤트 정보를 기준으로 적절하게 저장이 된다', a
 
   await act(() => Promise.resolve(null));
 
-  const newEvent: Event = {
-    id: '1',
+  const newEventForm: EventForm = {
     title: '새 회의',
     date: '2025-10-16',
     startTime: '11:00',
@@ -64,10 +63,10 @@ it('정의된 이벤트 정보를 기준으로 적절하게 저장이 된다', a
   };
 
   await act(async () => {
-    await result.current.saveEvent(newEvent);
+    await result.current.saveEvent(newEventForm);
   });
 
-  expect(result.current.events).toEqual([{ ...newEvent, id: '1' }]);
+  expect(result.current.events).toEqual([{ ...newEventForm, id: '1' }]);
 });
 
 it("새로 정의된 'title', 'endTime' 기준으로 적절하게 일정이 업데이트 된다", async () => {
@@ -102,11 +101,13 @@ it('존재하는 이벤트 삭제 시 에러없이 아이템이 삭제된다.', 
 
   const { result } = renderHook(() => useEventOperations(false));
 
+  await waitFor(() => {
+    expect(result.current.events).toHaveLength(1);
+  });
+
   await act(async () => {
     await result.current.deleteEvent('1');
   });
-
-  await act(() => Promise.resolve(null));
 
   expect(result.current.events).toEqual([]);
 });
@@ -206,8 +207,8 @@ describe('반복 일정 생성, 수정, 삭제 로직', () => {
         await result.current.saveEvent(newRecurringEventForm as Event);
       });
 
-      expect(result.current.events).toHaveLength(1);
-      const savedEvent = result.current.events[0];
+      expect(result.current.events).toHaveLength(2);
+      const savedEvent = result.current.events[1];
       expect(savedEvent.id).toBe('series-123');
       expect(savedEvent.seriesId).toBe('series-123');
       expect(savedEvent.title).toBe('매일 반복되는 스크럼');

@@ -229,7 +229,7 @@ describe('generateRecurringEvents', () => {
       const viewStartDate = new Date('2024-01-01');
       const viewEndDate = new Date('2028-12-31');
       const result = generateRecurringEvents(events, viewStartDate, viewEndDate);
-      expect(result).toHaveLength(3);
+      expect(result).toHaveLength(2);
       expect(result.map((e) => e.date)).toEqual(['2025-11-15', '2027-11-15']);
     });
 
