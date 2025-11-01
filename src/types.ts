@@ -50,6 +50,6 @@ export interface Event extends EventForm {
  */
 export interface EventInstance extends Omit<Event, 'id' | 'date'> {
   instanceId: string; // 캘린더 key 등으로 사용될 고유 ID
-  date: string;       // 이 인스턴스가 발생하는 실제 날짜
-  seriesId: string;   // 원본 시리즈 ID (null이 아님)
+  date: string; // 이 인스턴스가 발생하는 실제 날짜
+  seriesId: string; // 원본 시리즈 ID (null이 아님)
 }

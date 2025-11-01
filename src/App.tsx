@@ -45,7 +45,13 @@ import { useEventOperations } from './hooks/useEventOperations.ts';
 import { useNotifications } from './hooks/useNotifications.ts';
 import { useSearch } from './hooks/useSearch.ts';
 import { Event, EventForm, EventInstance, RepeatType } from './types';
-import { formatDate, formatMonth, formatWeek, getWeekDates, getWeeksAtMonth } from './utils/dateUtils';
+import {
+  formatDate,
+  formatMonth,
+  formatWeek,
+  getWeekDates,
+  getWeeksAtMonth,
+} from './utils/dateUtils';
 import { findOverlappingEvents } from './utils/eventOverlap';
 import { getTimeErrorMessage } from './utils/timeValidation';
 
@@ -463,7 +469,7 @@ function App() {
                 <FormLabel>반복 유형</FormLabel>
                 <Select
                   size="small"
-                  value={repeatType}
+                  value="daily"
                   onChange={(e) => setRepeatType(e.target.value as RepeatType)}
                 >
                   <MenuItem value="daily">매일</MenuItem>
@@ -472,7 +478,7 @@ function App() {
                   <MenuItem value="yearly">매년</MenuItem>
                 </Select>
               </FormControl>
-             <Stack direction="row" spacing={2}>
+              <Stack direction="row" spacing={2}>
                 <FormControl fullWidth>
                   <FormLabel>반복 간격</FormLabel>
                   <TextField
@@ -686,7 +692,9 @@ function App() {
       </Dialog>
 
       <Dialog open={!!confirmModalState} onClose={() => setConfirmModalState(null)}>
-        <DialogTitle>반복 일정 {confirmModalState?.action === 'update' ? '수정' : '삭제'}</DialogTitle>
+        <DialogTitle>
+          반복 일정 {confirmModalState?.action === 'update' ? '수정' : '삭제'}
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
             이 작업은 반복되는 일정에 영향을 줍니다. 어떤 작업을 수행하시겠습니까?
